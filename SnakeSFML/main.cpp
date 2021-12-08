@@ -1,13 +1,13 @@
 #include <SFML/Graphics.hpp>
 #include <vector>
-
+#include <SFML/System/String.hpp>
+#include <string>
 
 #define CELL 16
 #define WIDTH 16*30
 #define HEIGHT 16*30
 
 using namespace sf;
-
 
 enum Dir {
 	UP,
@@ -16,8 +16,6 @@ enum Dir {
 	RIGHT,
 	NONE
 };
-
-
 
 class Fruit : public RectangleShape {
 protected:
@@ -64,7 +62,7 @@ public:
 	Banana() : Fruit()
 	{
 		this->weight = 3;
-		this->setFillColor(Color::Red);
+		this->setFillColor(Color::Yellow);
 	}
 	Banana(float x, float y) : Banana()
 	{
@@ -83,7 +81,7 @@ public:
 	Peach() : Fruit()
 	{
 		this->weight = 5;
-		this->setFillColor(Color::Red);
+		this->setFillColor(Color::Magenta);
 	}
 	Peach(float x, float y) : Peach()
 	{
@@ -133,15 +131,17 @@ class Snake : public std::vector<RectangleShape> {
 private:
 	Dir dir;
 	int score;
+	bool isAlive;
 public:
 	Snake() :std::vector<RectangleShape>()
 	{
 		this->dir = NONE;
 		this->score = 0;
 		this->push_back(RectangleShape());
-		this->begin()->setFillColor(Color::Magenta);
+		this->begin()->setFillColor(Color::Green);
 		this->begin()->setSize(Vector2f(CELL, CELL));
 		this->begin()->setPosition(Vector2f(WIDTH / 2, HEIGHT / 2));
+		this->isAlive = true;
 	}
 
 	void Move() {
@@ -179,6 +179,20 @@ public:
 
 			break;
 		}
+		if (this->begin()->getPosition().x < 0) {
+			this->begin()->move(WIDTH,0);
+		}
+		if (this->begin()->getPosition().x > WIDTH) {
+			this->begin()->move(-(WIDTH+CELL), 0);
+		}
+		if (this->begin()->getPosition().y > HEIGHT) {
+			this->begin()->move(0, -(WIDTH + CELL));
+		}
+		if (this->begin()->getPosition().y < 0) {
+			this->begin()->move(0, HEIGHT);
+		}
+
+
 		for (std::vector<RectangleShape>::iterator i = this->begin(); i != this->end(); i++) {
 			if (i->getPosition().x != this->begin()->getPosition().x || i->getPosition().y != this->begin()->getPosition().y) {
 				Vector2f tmp = i->getPosition();
@@ -191,6 +205,13 @@ public:
 	void AddToBody() {
 		this->push_back(*(this->end()-1));
 	}
+	void CheckBodyCollision() {
+		for (std::vector<RectangleShape>::iterator i = this->begin()+1; i != this->end(); i++) {
+			if (this->begin()->getPosition() == i->getPosition()) {
+				this->isAlive = false;
+			}
+		}
+	}
 
 	void FruitCollision(Fruit& fruit) {
 		for (std::vector<RectangleShape>::iterator i = this->begin(); i != this->end(); i++) {
@@ -201,6 +222,13 @@ public:
 				return;
 			}
 		}
+	}
+
+	bool getIsAlive() {
+		return this->isAlive;
+	}
+	int getScore() {
+		return this->score;
 	}
 
 	~Snake()
@@ -220,17 +248,17 @@ int main(int argc, char* argv[]) {
 	RenderWindow window(VideoMode(WIDTH,HEIGHT),"Snake");
 	Snake snake;
 
+	Font font;
+	
+	font.loadFromFile("ReadexPro.ttf");
+	Text score;
+	score.setFont(font);
+	score.setCharacterSize(16);
+	score.setFillColor(Color(0,0,0));
+	score.setString("Score: 0");
 
 	Fruit f;
-
-
-
-
-
 	RandomFruit(f);
-	snake.AddToBody();
-	snake.AddToBody();
-	snake.AddToBody();
 
 	while (window.isOpen())
 	{
@@ -244,18 +272,27 @@ int main(int argc, char* argv[]) {
 
 		snake.FruitCollision(f);
 		snake.Move();
-		
+		snake.CheckBodyCollision();
+		if (!snake.getIsAlive()) {
+			snake = Snake();
+		}
+		std::string tos = std::to_string(snake.getScore());
+		score.setString("Score: "+tos);
+
 		window.clear(Color(255,255,255));
+
+
+		window.draw(score);
 
 		window.draw(f);
 
 		for (auto i : snake) {
 			window.draw(i);
 		}
-
+		
 		window.display();
 
-		sleep(milliseconds(250));
+		sleep(milliseconds(100));
 	}
 
 
